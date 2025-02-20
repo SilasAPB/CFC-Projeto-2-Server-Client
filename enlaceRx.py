@@ -69,7 +69,7 @@ class RX(object):
 
     def getNData(self, size):
         while(self.getBufferLen() < size):
-            print(f"Progresso: {(self.getBufferLen()/size)*100:5.2f}%",end="\r")
+            #print(f"Progresso: {(self.getBufferLen()/size)*100:5.2f}%",end="\r")
             time.sleep(0.05)                 
         return(self.getBuffer(size))
 
