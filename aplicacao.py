@@ -13,17 +13,62 @@
 from enlace import *
 import time
 import numpy as np
+ 
+# SOURCE: https://www.geeksforgeeks.org/python-program-to-represent-floating-number-as-hexadecimal-by-ieee-754-standard/
+# def float_bin(my_number, places = 3): 
+#     my_whole, my_dec = str(my_number).split(".")
+#     my_whole = int(my_whole)
+#     res = (str(bin(my_whole))+".").replace('0b','')
+ 
+#     for x in range(places):
+#         my_dec = str('0.')+str(my_dec)
+#         temp = '%1.20f' %(float(my_dec)*2)
+#         my_whole, my_dec = temp.split(".")
+#         res += my_whole
+#     return res
 
-# voce deverá descomentar e configurar a porta com através da qual ira fazer comunicaçao
-#   para saber a sua porta, execute no terminal :
-#   python -m serial.tools.list_ports
-# se estiver usando windows, o gerenciador de dispositivos informa a porta
+# def IEEE754(n) : 
+#     # identifying whether the number
+#     # is positive or negative
+#     sign = 0
+#     if n < 0 : 
+#         sign = 1
+#         n = n * (-1) 
+#     p = 30
+#     # convert float to binary
+#     dec = float_bin (n, places = p)
+ 
+#     dotPlace = dec.find('.')
+#     onePlace = dec.find('1')
+#     # finding the mantissa
+#     if onePlace > dotPlace:
+#         dec = dec.replace(".","")
+#         onePlace -= 1
+#         dotPlace -= 1
+#     elif onePlace < dotPlace:
+#         dec = dec.replace(".","")
+#         dotPlace -= 1
+#     mantissa = dec[onePlace+1:]
+ 
+#     # calculating the exponent(E)
+#     exponent = dotPlace - onePlace
+#     exponent_bits = exponent + 127
+ 
+#     # converting the exponent from
+#     # decimal to binary
+#     exponent_bits = bin(exponent_bits).replace("0b",'') 
+ 
+#     mantissa = mantissa[0:23]
+ 
+#     # the IEEE754 notation in binary     
+#     final = str(sign) + exponent_bits.zfill(8) + mantissa
+#     hstr = '0x%0*X' %((len(final) + 3) // 4, int(final, 2)) 
+#     return hstr
 
-#use uma das 3 opcoes para atribuir à variável a porta usada
-#serialName = "/dev/ttyACM0"           # Ubuntu (variacao de)
-#serialName = "/dev/tty.usbmodem1411" # Mac    (variacao de)
-serialName ="COM9"                  # Windows(variacao de)  detectar sua porta e substituir aqui
+from random import random
+import numpy as np
 
+serialName ="COM5"
 
 def main():
     try:
@@ -37,32 +82,20 @@ def main():
         #Se chegamos até aqui, a comunicação foi aberta com sucesso. Faça um print para informar.
         print("Abriu a comunicação")
         
-        #aqui você deverá gerar os dados a serem transmitidos. 
-        #seus dados a serem transmitidos são um array bytes a serem transmitidos. Gere esta lista com o 
-        #nome de txBuffer. Esla sempre irá armazenar os dados a serem enviados.
-        imageR="./img/paiol.jpg"
-        imageW="./img/paiolcopy.jpg"
-
-        # Carrega imagem
-        print("Carregando imagem para transmissão:")
-        print(" - {}".format(imageR))
-        print("----------------------------")
-        txBuffer = open(imageR, 'rb').read()
-
-        #txBuffer = imagem em bytes!
-        #txBuffer = b'\x12\x13\xAA\x01'  #isso é um array de bytes. apenas um exemplo para teste. Deverá ser substutuido pelo 
-        #array correspondente à imagem
+        k = 5 # Numero de números gerados
+        numeros = [round(random(),6) for i in range(0,k)]
+        print(f"Os seguintes {k} números foram gerados:\n{numeros}")
+        txBuffer = np.asarray(numeros)
        
-        print("meu array de bytes tem tamanho {}" .format(len(txBuffer)))
-        #faça aqui uma conferência do tamanho do seu txBuffer, ou seja, quantos bytes serão enviados.
-       
-            
+        print("meu array de bytes tem tamanho {}" .format(len(''.join(txBuffer))))
+
+
         #finalmente vamos transmitir os todos. Para isso usamos a funçao sendData que é um método da camada enlace.
         #faça um print para avisar que a transmissão vai começar.
         print("A transmissão irá começar!")
         #tente entender como o método send funciona!
         #Cuidado! Apenas trasmita arrays de bytes!    
-        com1.sendData(np.asarray(txBuffer))  #as array apenas como boa pratica para casos de ter uma outra forma de dados
+        com1.sendData(txBuffer)  #as array apenas como boa pratica para casos de ter uma outra forma de dados
           
         # A camada enlace possui uma camada inferior, TX possui um método para conhecermos o status da transmissão
         # O método não deve estar fincionando quando usado como abaixo. deve estar retornando zero. Tente entender como esse método funciona e faça-o funcionar.
@@ -83,14 +116,6 @@ def main():
         txLen = len(txBuffer)
         rxBuffer, nRx = com1.getData(txLen)
         print("recebeu {} bytes" .format(len(rxBuffer)))
-        
-        #apenas para teste dos 4 bytes exemplo. NO caso da imagem devera ser retirado para nao poluir...
-        print("Salvando dados no arquivo:")
-        print(f" - {imageW}")
-        f= open(imageW, "wb")
-        f.write(rxBuffer)
-        
-        f.close()
     
         # Encerra comunicação
         print("-------------------------")
