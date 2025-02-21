@@ -39,10 +39,10 @@ def main():
         time.sleep(1)
         
         k = 5 # Numero de números gerados
-        numeros = [round(((random()-.5)*2)*1e38,6) for i in range(0,k)]
+        numeros = [round((random()*5), 6) for i in range(0,k)]
         print(f"Os seguintes {k} números foram gerados:\n{numeros}")
         txBuffer = [bytearray(struct.pack("!f",n)) for n in numeros]
-        txBuffer[2] = bytearray(b'\ff')
+        # txBuffer[2] = bytearray(b'\ff')
        
         print(f"Enviando quantidade de números: {k}")
         time.sleep(.2)
@@ -70,7 +70,19 @@ def main():
                 sys.exit()
         rxBuffer = com1.rx.getBuffer(4)
 
-        print(struct.unpack("!f",rxBuffer)[0])
+        correto = round(sum(numeros),6)
+        
+        soma = round(struct.unpack("!f",rxBuffer)[0],6)
+        
+        print(f'A soma dos números é {correto}')
+        print(f'A soma recebida é {soma}')
+        
+        
+        err = soma-correto
+        
+        print(f'Erro de transmissão: {err}')
+        if abs(err) > 0.0000001:
+            print("Erro de transmissão alto demais!")
         
         # Encerra comunicação
         print("-------------------------")
