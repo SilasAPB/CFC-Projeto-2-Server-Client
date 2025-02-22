@@ -45,7 +45,7 @@ def main():
             i+=1
         # Encerra comunicação
         print(f"a soma final foi {sum}")
-        #com1.sendData(struct.pack('!f',sum))
+        com1.sendData(struct.pack('!f',sum))
         print("-------------------------")
         print("Comunicação encerrada")
         print("-------------------------")
