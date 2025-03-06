@@ -40,7 +40,7 @@ class DatagramGenerator:
         data) -> bytearray:
         pass
     
-    def EOP(self): return b'\ff\ff'
+    def EOP(self): return b'\f\f\f'
     
 def main():
     generator = DatagramGenerator()
