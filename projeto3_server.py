@@ -60,13 +60,12 @@ def main():
                 tamanho_corpo=head['tamanho_pl']
                 recebido_corpo, recebido_size=com1.getData(tamanho_corpo)
                 recebido_eop,recebido_size=com1.getData(3)
-                if recebido_eop=="pig":
-                    pass
-
-            pass
-
-        
-        
+                if recebido_eop==generator.EOP():
+                    lista_unpack.append(recebido_corpo)
+            aceite=generator.generate_header(tipo=4,id_pacote=head["id_pacote"])
+            print(aceite)
+            com1.sendData(aceite)
+            cont+=1
         
         # sum=0
         # i=0
