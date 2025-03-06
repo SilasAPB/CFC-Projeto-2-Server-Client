@@ -6,7 +6,7 @@
 ####################################################
 
 from enlace import *
-import projeto3_generator
+from projeto3_generator import DatagramGenerator
 import time
 import struct
 import numpy as np
@@ -15,6 +15,8 @@ from random import random
 import numpy as np
 
 serialName ="COM9"
+
+generator=DatagramGenerator()
 
 def main():
     try:
@@ -33,12 +35,27 @@ def main():
         print("esperando 1 byte de sacrifício")
         rxBuffer, nRx = com1.getData(1) #FICA EM LOOPING ESPERANDO A MENSAGEM
         com1.rx.clearBuffer()
-
+        
+        #RECEBE O HEADER
         time.sleep(.1)
         recebido, recebido_size=com1.getData(12)
         print("recebeu {} bytes" .format(len(recebido)))
-        byte=decoder(recebido)
-        print(byte)
+        head=generator.decode_header(recebido)
+        print(head)
+        numPckg=head['n_pacotes']
+
+        #MANDA O ACEITE PARA O CLIENT
+        aceite=generator.generate_header(tipo=2)
+        print(aceite)
+        com1.sendData(aceite)
+
+        print(com1.rx.getBufferLen())
+
+        #COMEÇA A CONTAR OS PACOTES
+        cont=0
+
+        while cont<=numPckg:
+            pass
 
         
         
