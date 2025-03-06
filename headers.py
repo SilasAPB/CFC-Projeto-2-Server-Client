@@ -64,13 +64,14 @@ def decode(header:bytes) -> dict:
     res = {'type':header[0]}
 
     index = 1
-    for feature in TYPE_FEATURES[res['type']]:
-        datatype = DATATYPES[feature]
-        slice = header[index:index+DATASIZES[datatype]] if DATASIZES[datatype]>1 else header[index].to_bytes()
-        res[feature] = unpack(
-            f'!{datatype}',
-            slice
-        )[0]
-        index += DATASIZES[datatype]
+    if res['type'] in TYPE_FEATURES.keys():
+        for feature in TYPE_FEATURES[res['type']]:
+            datatype = DATATYPES[feature]
+            slice = header[index:index+DATASIZES[datatype]] if DATASIZES[datatype]>1 else header[index].to_bytes()
+            res[feature] = unpack(
+                f'!{datatype}',
+                slice
+            )[0]
+            index += DATASIZES[datatype]
     
     return res
