@@ -36,11 +36,11 @@ class DatagramGenerator:
     def decode_header(self,header:bytes):
         return headers.decode(header)
         
-    
-    
     def generate_payload(self,
         data) -> bytearray:
         pass
+    
+    def EOF(self): return b'\ff\ff'
     
 def main():
     generator = DatagramGenerator()
