@@ -53,8 +53,9 @@ def main():
 
         #COMEÇA A CONTAR OS PACOTES
         cont=0
-
         while cont<=numPckg:
+            timer1=time.time()
+            timer2=time.time()
             pass
 
         
