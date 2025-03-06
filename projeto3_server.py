@@ -27,10 +27,7 @@ def main():
 
         # Ativa comunicacao. Inicia os threads e a comunicação seiral 
         com1.enable()
-        receive_list=[]
         lista_unpack=[]
-        numero_pacotes=0
-        id_pacote=0
 
         print("esperando 1 byte de sacrifício")
         rxBuffer, nRx = com1.getData(1) #FICA EM LOOPING ESPERANDO A MENSAGEM
@@ -56,6 +53,16 @@ def main():
         while cont<=numPckg:
             timer1=time.time()
             timer2=time.time()
+            recebido_head, recebido_size=com1.getData(12)
+            head=generator.decode_header(recebido_head)
+            print(head)
+            if cont==head['id_pacote']:
+                tamanho_corpo=head['tamanho_pl']
+                recebido_corpo, recebido_size=com1.getData(tamanho_corpo)
+                recebido_eop,recebido_size=com1.getData(3)
+                if recebido_eop=="pig":
+                    pass
+
             pass
 
         
