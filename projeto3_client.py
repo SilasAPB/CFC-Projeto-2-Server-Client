@@ -18,10 +18,17 @@ from random import random
 import numpy as np
 import struct
 import sys
+import os
+from threading import Thread
+
+from projeto3_generator import DatagramGenerator
 
 serialName ="COM5"
+PLMAX = 70
+TIMEOUT=3
 
 def main():
+    generator = DatagramGenerator()
     try:
         print("Iniciou o main")
         #declaramos um objeto do tipo enlace com o nome "com". Essa é a camada inferior à aplicação. Observe que um parametro
@@ -30,60 +37,91 @@ def main():
 
         # Ativa comunicacao. Inicia os threads e a comunicação seiral 
         com1.enable()
-        #Se chegamos até aqui, a comunicação foi aberta com sucesso. Faça um print para informar.
-        print("Abriu a comunicação")
         
+        print("Abriu a comunicação")
+        file = r'C:\Users\yaman\OneDrive - Insper - Institudo de Ensino e Pesquisa\2025.1\Camadas\Aula1\data\bola_lowres.jpg'
+        image = open(file,'rb')
+        
+        len_image = os.path.getsize(file)
+        n_pacotes = len_image/PLMAX if not len_image%PLMAX else (len_image//PLMAX)+1
         print("Enviando byte de sacrifício:")
         time.sleep(.2)
         com1.sendData(b'00')
         time.sleep(1)
         
-        k = 5 # Numero de números gerados
-        numeros = [round((random()*5), 6) for i in range(0,k)]
-        print(f"Os seguintes {k} números foram gerados:\n{numeros}")
-        txBuffer = [bytearray(struct.pack("!f",n)) for n in numeros]
-        # txBuffer[2] = bytearray(b'\ff')
-       
-        print(f"Enviando quantidade de números: {k}")
-        time.sleep(.2)
-        com1.sendData(struct.pack('!B',k))
-        time.sleep(1)
+        # --------------------------- #
+        #          HANDSHAKE          #
+        # --------------------------- #
+        print('Efetuando Handshake:')
+        handshake = False
+        while not handshake:
+            txBuffer = generator.generate_header(1,id_servidor=1,n_pacotes=n_pacotes)
+            com1.sendData(txBuffer)
+            time.sleep(0.2)
+            
+            start = time.time()
+            while(com1.rx.getBufferLen() < 12):
+                time.sleep(0.05)
+                if (time.time()-start >= TIMEOUT):
+                    res = input('Servidor inativo. Tentar novamente? S/N > ')
+                    if res.lower() == 's': continue
+                    else:
+                        com1.disable()
+                        sys.exit()
+                    
+            rxBuffer = com1.rx.getBuffer(12)
+            
+            response = generator.decode_header(com1.rx.getBuffer(12))
+            if response["type"]==2:
+                handshake = True        
+            
+            
+        # --------------------------- #
+        #       Envio de Pacotes      #
+        # --------------------------- #
+        print('HANDSHAKE ESTABELECIDO\nENVIANDO PACOTES')
+        n_pacote = 0
+        while n_pacote <= n_pacotes:
+            txBuffer = generator.generate_header(
+                3,
+                id_pacote=n_pacote,
+                n_pacotes=n_pacotes,
+                tamanho_pl=70)
+            com1.sendData(txBuffer)
+            time.sleep(0.2)
+            
+            start = time.time()
+            while(com1.rx.getBufferLen() < 12):
+                time.sleep(0.05)
+                if (time.time()-start >= TIMEOUT):
+                    res = input('Servidor inativo. Tentar novamente? S/N > ')
+                    if res.lower() == 's': continue
+                    else: sys.exit()
+                    
+            rxBuffer = com1.rx.getBuffer(12)
+            
+            response = generator.decode_header(com1.rx.getBuffer(12))
+            if response["type"]==2:
+                handshake = True
+        n_pacote = 1
+        while True:
+            print('Efetuando Handshake:')
+            txBuffer = generator.generate_header(1,id_servidor=1,n_pacotes=n_pacotes)
+            com1.sendData(txBuffer)
+            response = generator.decode_header(com1.rx.getBuffer(12))
+            time.sleep(0.2)
         
+        # time.sleep(.2)
         
-        for i in range(len(numeros)):
-            print(f'Enviando {numeros[i]:}')
-            print("meu array de bytes tem tamanho {}" .format(len(txBuffer[i])))
-
-            com1.sendData(txBuffer[i])
-        
-            txSize = com1.tx.getStatus()
-            print('enviou = {}' .format(txSize))
-            time.sleep(.2)
-        
-        start = time.time()
-        TIMEOUT = 5
-        while(com1.rx.getBufferLen() < 4):
-            time.sleep(0.05)
-            if (time.time()-start >= TIMEOUT):
-                print("ERRO! Tempo de espera excedido.")
-                com1.disable()
-                sys.exit()
-        rxBuffer = com1.rx.getBuffer(4)
-
-        correto = round(sum(numeros),6)
-        
-        soma = round(struct.unpack("!f",rxBuffer)[0],6)
-        
-        print(f'A soma dos números é {correto}')
-        print(f'A soma recebida é {soma}')
-        
-        
-        err = soma-correto
-        
-        print(f'Erro de transmissão: {err}')
-        if abs(err) > 0.0000001:
-            print("Erro de transmissão alto demais!")
-        
+        # start = time.time()
+        # TIMEOUT = 5
+        # while(com1.rx.getBufferLen() < 4):
+        #     time.sleep(0.05)
+        #     if (time.time()-start >= TIMEOUT):
+        #         print("ERRO! Tempo de espera excedido.")
+        #         com1.disable()
+        #         sys.exit()
+        # rxBuffer = com1.rx.getBuffer(4)
         # Encerra comunicação
         print("-------------------------")
         print("Comunicação encerrada")
