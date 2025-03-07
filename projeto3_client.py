@@ -133,8 +133,8 @@ def main():
                 break
             
             response = generator.decode_header(com1.rx.getBuffer(12))
-            if response["type"]==4 and response['id_pacote']==n_pacote:
-                n_pacote += 1
+            if response["type"]==4:
+                n_pacote = response['id_pacote']+1
             if response["type"]==6:
                 print(f"\nErro no pacote {response['id_pacote']}. Tentando novamente")
                 n_pacote = response["id_pacote"]
