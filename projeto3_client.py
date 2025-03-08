@@ -51,7 +51,8 @@ def main():
         file = r'C:\Users\yaman\OneDrive - Insper - Institudo de Ensino e Pesquisa\2025.1\Camadas\Aula1\data\bola_lowres.jpg'
         image = open(file,'rb').read()
         pacotes,total_pacotes = split_in_chunks(image,PLMAX)
-
+        
+        
         print("Enviando byte de sacrifício:")
         time.sleep(.2)
         com1.sendData(b'00')
@@ -60,9 +61,9 @@ def main():
         # --------------------------- #
         #          HANDSHAKE          #
         # --------------------------- #
-        print('Efetuando Handshake:')
         handshake = False
         while not handshake:
+            print('Efetuando Handshake:')
             txBuffer = generator.generate_header(
                 1,
                 id_servidor=1,
@@ -70,15 +71,21 @@ def main():
             com1.sendData(txBuffer)
             time.sleep(0.2)
             
+            active = True
             start = time.time()
             while(com1.rx.getBufferLen() < 12):
                 time.sleep(0.05)
                 if (time.time()-start >= TIMEOUT):
-                    res = input('Servidor inativo. Tentar novamente? S/N > ')
-                    if res.lower() == 's': continue
-                    else:
-                        com1.disable()
-                        sys.exit()
+                    active = False
+                    break
+                
+            if not active:
+                res = input('Servidor inativo. Tentar novamente? S/N > ')
+                if res.lower() == 's':
+                    continue
+                else:
+                    com1.disable()
+                    sys.exit()
             
             response = generator.decode_header(com1.rx.getBuffer(12))
             if response["type"]==2:
@@ -91,50 +98,47 @@ def main():
         print('HANDSHAKE ESTABELECIDO\nENVIANDO PACOTES')
         n_pacote = 0
         while n_pacote < total_pacotes:
-            print(f'Enviando pacote [{n_pacote}]...',end='\r')
+            print(f'Enviando pacote [{n_pacote}] | {(n_pacote/total_pacotes)*100:.2f}%',end='\r')
             txBuffer = generator.generate_header(
                 3,
-                id_pacote=n_pacote,
+                id_pacote=n_pacote, # if n_pacote != 3 else 20
                 n_pacotes=total_pacotes,
-                tamanho_pl=len(pacotes[n_pacote]))
+                tamanho_pl = len(pacotes[n_pacote])) #
             
-            com1.sendData(txBuffer)            # Enviando Header
-            time.sleep(0.05)
-            
-            com1.sendData(pacotes[n_pacote])   # Enviando Payload
-            time.sleep(0.05)
-            
-            com1.sendData(generator.EOF())     # Enviando EOF
-            time.sleep(0.05)
-            
-            start = time.time()
-            while(com1.rx.getBufferLen() < 12):
-                if (time.time()-start >= TIMEOUT):
-                    print("\nTempo esgotado para recebimento de resposta do servidor.")
-                    txBuffer = generator.generate_header(5)
-                    com1.sendData(txBuffer)
-                    time.sleep(.05)
-                    com1.disable()
-                    sys.exit()
+            tries = 3
+            while tries:
+                tries-=1
+                com1.sendData(txBuffer)            # Enviando Header
+                time.sleep(0.05)
+                
+                com1.sendData(pacotes[n_pacote])   # Enviando Payload
+                time.sleep(0.05)
+                
+                com1.sendData(generator.EOP())     # Enviando EOP
+                time.sleep(0.05)
+                
+                start = time.time()
+                while(com1.rx.getBufferLen() < 12):
+                    if (time.time()-start >= TIMEOUT):
+                        if tries:
+                            print(f"\nTempo esgotado para recebimento de resposta do servidor. Tentando novamente. [{tries}] restantes")
+                            com1.rx.clearBuffer()
+                        else:
+                            print(f"\nTentativas esgotadas. Enviando header de timeout e encerrando comunicação.")
+                            txBuffer = generator.generate_header(5)
+                            com1.sendData(txBuffer)
+                            time.sleep(.05)
+                            com1.disable()
+                            sys.exit()
+                break
             
             response = generator.decode_header(com1.rx.getBuffer(12))
-            if response["type"]==4 and response['id_pacote']==n_pacote:
-                n_pacote += 1
+            if response["type"]==4:
+                n_pacote = response['id_pacote']+1
             if response["type"]==6:
+                print(f"\nErro no pacote {response['id_pacote']}. Tentando novamente")
                 n_pacote = response["id_pacote"]
         
-        # time.sleep(.2)
-        
-        # start = time.time()
-        # TIMEOUT = 5
-        # while(com1.rx.getBufferLen() < 4):
-        #     time.sleep(0.05)
-        #     if (time.time()-start >= TIMEOUT):
-        #         print("ERRO! Tempo de espera excedido.")
-        #         com1.disable()
-        #         sys.exit()
-        # rxBuffer = com1.rx.getBuffer(4)
-        # Encerra comunicação
         print("-------------------------")
         print("Comunicação encerrada")
         print("-------------------------")
