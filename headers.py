@@ -49,16 +49,18 @@ def encode(
     if type_id in TYPE_FEATURES.keys():
         for feature in TYPE_FEATURES[type_id]:
             try:
-                bytestring += pack(
-                    f'!{DATATYPES[feature]}',
-                    kwargs[feature])
+                if feature=='crc16':
+                    bytestring+=kwargs['crc16']
+                else:
+                    bytestring += pack(
+                        f'!{DATATYPES[feature]}',
+                        kwargs[feature])
             except KeyError:
                 print("Parâmetro {feature} não encontrado\nParâmetros necessários:\n- {params}".format(
                     feature=feature,params='\n- '.join(TYPE_FEATURES[type_id])))
                 raise(KeyError("Parâmetro {feature} não encontrado. Parâmetros necessários: {params}.".format(
                     feature=feature,params=', '.join(TYPE_FEATURES[type_id]))))
-    if type_id==3:
-        bytestring+=kwargs.get('crc16',b'\x00\x00')
+
     str_size = len(bytestring)
     bytestring += bytearray(HEADER_SIZE-str_size)
     
@@ -81,7 +83,7 @@ def decode(header:bytes) -> dict:
             )[0]
             index += DATASIZES[datatype]
     
-    if res['type'] > TYPE_LEN or res['type']:
+    if res['type'] > TYPE_LEN or res['type']<=0:
         return {'error': 'Header type not listed'}
     
     return res
