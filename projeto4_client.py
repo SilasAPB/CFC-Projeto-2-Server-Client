@@ -21,6 +21,7 @@ import os
 from threading import Thread
 
 from projeto3_generator import DatagramGenerator
+from crc import Calculator, Crc16
 
 serialName ="COM5"
 PLMAX = 70
@@ -142,6 +143,9 @@ def main():
                     break
 
             response = generator.decode_header(com1.rx.getBuffer(12))
+            if 'error' in response.keys():
+                txBuffer = generator.generate_header(6)
+                com1.sendData(txBuffer)
             if response["type"]==4:
                 n_pacote = response['id_pacote']+1
             if response["type"]==6:

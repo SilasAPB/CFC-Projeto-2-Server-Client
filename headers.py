@@ -1,7 +1,7 @@
 from struct import pack,unpack
 TYPE_FEATURES = {
         1:['id_servidor','n_pacotes'],
-        3:['id_pacote','n_pacotes','tamanho_pl'],
+        3:['id_pacote','n_pacotes','tamanho_pl','crc16'],
         4:['id_pacote'],
         6:['id_pacote'],
 }
@@ -16,6 +16,8 @@ DATATYPES = {
 
 DATASIZES = {'B':1,'I':4}
 
+TYPE_LEN = 6
+
 HEADER_SIZE = 12
 
 def encode(
@@ -29,7 +31,7 @@ def encode(
         **Tipo 2:** [tipo<1>]
         - Mensagem de confirmação de transmissão
         
-        **Tipo 3:** [tipo<1> , id_pacote<4> , n_pacotes<4> , tamanho_pl<1>]
+        **Tipo 3:** [tipo<1> , id_pacote<4> , n_pacotes<4> , tamanho_pl<1> , crc16<2>]
         - Pacote de dados
         
         **Tipo 4:** [tipo<1> , id_pacote<4>]
@@ -55,8 +57,13 @@ def encode(
                     feature=feature,params='\n- '.join(TYPE_FEATURES[type_id])))
                 raise(KeyError("Parâmetro {feature} não encontrado. Parâmetros necessários: {params}.".format(
                     feature=feature,params=', '.join(TYPE_FEATURES[type_id]))))
+    if type_id==3:
+        bytestring+=kwargs.get('crc16',b'\x00\x00')
     str_size = len(bytestring)
     bytestring += bytearray(HEADER_SIZE-str_size)
+    
+    if type_id > TYPE_LEN or type_id<=0:
+        return bytearray(HEADER_SIZE)
     
     return bytestring
  
@@ -73,5 +80,8 @@ def decode(header:bytes) -> dict:
                 slice
             )[0]
             index += DATASIZES[datatype]
+    
+    if res['type'] > TYPE_LEN or res['type']:
+        return {'error': 'Header type not listed'}
     
     return res

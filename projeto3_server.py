@@ -14,7 +14,7 @@ import numpy as np
 from random import random
 import numpy as np
 
-serialName ="COM9"
+serialName ="COM7"
 
 generator=DatagramGenerator()
 
