@@ -23,6 +23,10 @@ from threading import Thread
 from projeto3_generator import DatagramGenerator
 from crc import Calculator, Crc16
 
+import logging
+logger = logging.getLogger('p4_client')
+logging.basicConfig(filename='p4_client.log', level=logging.INFO,format='%(asctime)s | %(message)s')
+
 serialName ="COM5"
 PLMAX = 70
 TIMEOUT = 5
@@ -39,6 +43,7 @@ def split_in_chunks(list,size):
 
 def main():
     generator = DatagramGenerator()
+    checksum = Calculator(Crc16.DNP,optimized=True)
     try:
         print("Iniciou o main")
         #declaramos um objeto do tipo enlace com o nome "com". Essa é a camada inferior à aplicação. Observe que um parametro
@@ -102,15 +107,18 @@ def main():
         n_pacote = 0
         while n_pacote < total_pacotes:
             print(f'Enviando pacote [{n_pacote}] | {(n_pacote/total_pacotes)*100:.2f}%',end='\r')
+            crc16 = checksum.checksum(pacotes[n_pacote])
             txBuffer = generator.generate_header(
                 3,
                 id_pacote=n_pacote, # if n_pacote != 3 else 20
                 n_pacotes=total_pacotes,
-                tamanho_pl = len(pacotes[n_pacote])) #
+                tamanho_pl = len(pacotes[n_pacote]),
+                crc16 = crc16)
             
             tries = 5
             while tries:
                 tries-=1
+                
                 com1.sendData(txBuffer)            # Enviando Header
                 time.sleep(0.05)
                 
@@ -120,6 +128,12 @@ def main():
                 com1.sendData(generator.EOP())     # Enviando EOP
                 com1.rx.clearBuffer()
                 time.sleep(0.05)
+                logger.info('envio | 3 | {tamanho} | {pacote} | {total} | {crc}'.format(
+                    tamanho=len(txBuffer)+len(pacotes[n_pacote])+2,
+                    pacote=n_pacote,
+                    total=total_pacotes,
+                    crc=crc16
+                ))
                 
                 
                 start = time.time()
@@ -132,6 +146,9 @@ def main():
                         else:
                             print(f"\nTentativas esgotadas. Enviando header de timeout e encerrando comunicação.")
                             txBuffer = generator.generate_header(5)
+                            logger.info('envio | 5 | {tamanho}'.format(
+                                tamanho=len(txBuffer)
+                            ))
                             com1.sendData(txBuffer)
                             time.sleep(.05)
                             com1.disable()
@@ -144,8 +161,12 @@ def main():
 
             response = generator.decode_header(com1.rx.getBuffer(12))
             if 'error' in response.keys():
-                txBuffer = generator.generate_header(6)
-                com1.sendData(txBuffer)
+                logger.info('recebido | 0 | 12')
+            
+            logger.info('recebido | {tipo} | {tamanho}'.format(
+                    tipo=response['type'],
+                    tamanho=12
+                ))
             if response["type"]==4:
                 n_pacote = response['id_pacote']+1
             if response["type"]==6:
