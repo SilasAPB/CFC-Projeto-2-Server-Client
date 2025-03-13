@@ -7,19 +7,36 @@
 
 from enlace import *
 from projeto3_generator import DatagramGenerator
+from crc import Calculator, Crc16
+import logging
 import time
 import struct
 import numpy as np
+from datetime import datetime
 
 from random import random
 import numpy as np
-
 serialName ="COM9"
-
 generator=DatagramGenerator()
+
+def geral_log(logger,recebido):
+    #Pega as info de tempo
+    agora = datetime.now()
+    saida = agora.strftime("%d/%m/%Y %H:%M:%S.") + f"{agora.microsecond // 1000:03d}"
+
+    #Pega as info do que chegou/saiu
+    head=generator.decode_header(recebido)
+
+    #Definindo a mensagem
+    msg=f'{saida} / receb / {head['type']} / {len(recebido)}'
+
+    logger.info(msg)
+
 
 def main():
     try:
+        logger=logging.getLogger("Projeto4_Server")
+        logging.basicConfig(filename='project4.log', level=logging.INFO)
         print("Iniciou o main")
         #declaramos um objeto do tipo enlace com o nome "com". Essa é a camada inferior à aplicação. Observe que um parametro
         #para declarar esse objeto é o nome da porta.
@@ -40,11 +57,13 @@ def main():
         print("recebeu {} bytes" .format(len(recebido)))
         head=generator.decode_header(recebido)
         print(head)
+        geral_log(logger,recebido)
         numPckg=head['n_pacotes']
 
         #MANDA O ACEITE PARA O CLIENT
         aceite=generator.generate_header(tipo=2)
         print(aceite)
+        geral_log(logger,aceite)
         com1.sendData(aceite)
 
         print(com1.rx.getBufferLen())
