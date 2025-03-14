@@ -15,7 +15,7 @@ DATATYPES = {
         'crc16':'H'
 }
 
-DATASIZES = {'B':1,'I':4}
+DATASIZES = {'B':1,'I':4,'H':2}
 
 TYPE_LEN = 6
 
