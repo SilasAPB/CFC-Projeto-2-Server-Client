@@ -11,7 +11,8 @@ DATATYPES = {
         'id_servidor':'B',
         'id_pacote':'I',
         'n_pacotes':'I',
-        'tamanho_pl':'B'
+        'tamanho_pl':'B',
+        'crc16':'H'
 }
 
 DATASIZES = {'B':1,'I':4}
@@ -49,12 +50,9 @@ def encode(
     if type_id in TYPE_FEATURES.keys():
         for feature in TYPE_FEATURES[type_id]:
             try:
-                if feature=='crc16':
-                    bytestring+=kwargs['crc16']
-                else:
-                    bytestring += pack(
-                        f'!{DATATYPES[feature]}',
-                        kwargs[feature])
+                bytestring += pack(
+                    f'!{DATATYPES[feature]}',
+                    kwargs[feature])
             except KeyError:
                 print("Parâmetro {feature} não encontrado\nParâmetros necessários:\n- {params}".format(
                     feature=feature,params='\n- '.join(TYPE_FEATURES[type_id])))
