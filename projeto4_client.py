@@ -27,7 +27,7 @@ import logging
 logger = logging.getLogger('p4_client')
 logging.basicConfig(filename='p4_client.log', level=logging.INFO,format='%(asctime)s | %(message)s')
 
-serialName ="COM5"
+serialName ="COM7"
 PLMAX = 70
 TIMEOUT = 5
 
@@ -107,7 +107,7 @@ def main():
         n_pacote = 0
         while n_pacote < total_pacotes:
             print(f'Enviando pacote [{n_pacote}] | {(n_pacote/total_pacotes)*100:.2f}%',end='\r')
-            crc16 = checksum.checksum(pacotes[n_pacote])
+            crc16 = struct.pack('!H',checksum.checksum(pacotes[n_pacote]))
             txBuffer = generator.generate_header(
                 3,
                 id_pacote=n_pacote, # if n_pacote != 3 else 20
