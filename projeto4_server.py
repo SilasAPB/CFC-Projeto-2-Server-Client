@@ -16,20 +16,21 @@ from datetime import datetime
 
 from random import random
 import numpy as np
-serialName ="COM9"
+serialName ="COM11"
 generator=DatagramGenerator()
 
-def geral_log(logger,recebido):
+def geral_log(logger,recebido,tipo):
+    dic={0:"receb",
+         1:"envio"
+        }
     #Pega as info de tempo
     agora = datetime.now()
     saida = agora.strftime("%d/%m/%Y %H:%M:%S.") + f"{agora.microsecond // 1000:03d}"
 
     #Pega as info do que chegou/saiu
     head=generator.decode_header(recebido)
-
     #Definindo a mensagem
-    msg=f'{saida} / receb / {head['type']} / {len(recebido)}'
-
+    msg=f"{saida} / {dic[tipo]} / {head['type']} / {len(recebido)}"
     logger.info(msg)
 
 
@@ -57,13 +58,13 @@ def main():
         print("recebeu {} bytes" .format(len(recebido)))
         head=generator.decode_header(recebido)
         print(head)
-        geral_log(logger,recebido)
+        geral_log(logger,recebido,0)
         numPckg=head['n_pacotes']
 
         #MANDA O ACEITE PARA O CLIENT
         aceite=generator.generate_header(tipo=2)
         print(aceite)
-        geral_log(logger,aceite)
+        geral_log(logger,aceite,1)
         com1.sendData(aceite)
 
         print(com1.rx.getBufferLen())
