@@ -16,7 +16,7 @@ from datetime import datetime
 
 from random import random
 import numpy as np
-serialName ="COM11"
+serialName ="COM7"
 generator=DatagramGenerator()
 
 def geral_log(logger,head,tamanho,tipo):
@@ -39,6 +39,7 @@ def geral_log(logger,head,tamanho,tipo):
 
 
 def main():
+    checksum = Calculator(Crc16.DNP,optimized=True)
     try:
         logger=logging.getLogger("Projeto4_Server")
         logging.basicConfig(filename='project4.log', level=logging.INFO)
@@ -92,8 +93,13 @@ def main():
                             print(f"PACOTE DE ID {head['id_pacote']} LIDO COM SUCESSO")
                             tamanho_corpo=head['tamanho_pl']
                             recebido_corpo, recebido_size=com1.getData(tamanho_corpo)
+                            
                             print(head["id_pacote"],cont)
                             recebido_eop,recebido_size=com1.getData(3)
+                            # if not checksum.verify(recebido_corpo,head['crc16']):
+                            if not checksum.verify(recebido_corpo,head['crc16'] if head['id_pacote']!= 3 else 1):
+                                print("Checksum errado!")
+                                raise ValueError("Checksum errado")
                             geral_log(logger,head,(len(head)+tamanho_corpo+3),0)
                         except:
                             aceite=generator.generate_header(tipo=6,id_pacote=cont)
@@ -108,7 +114,8 @@ def main():
                             aceite_head=generator.decode_header(aceite)
                             geral_log(logger,aceite_head,tamanho_aceite,1)
                             com1.sendData(aceite)
-                            cont+=1
+                            # cont+=1
+                            cont+=1 if cont!=3 else 3
                         else:
                             print("----- ERRO ENCONTRADO -----")
                             aceite=generator.generate_header(tipo=6,id_pacote=cont)
