@@ -107,7 +107,7 @@ def main():
     n_pacote = 0
     while n_pacote < total_pacotes:
         print(f'Enviando pacote [{n_pacote}] | {(n_pacote/total_pacotes)*100:.2f}%',end='\r')
-        crc16 = struct.pack('!H',checksum.checksum(pacotes[n_pacote]))
+        crc16 = checksum.checksum(pacotes[n_pacote])
         txBuffer = generator.generate_header(
             3,
             id_pacote=n_pacote, # if n_pacote != 3 else 20
@@ -129,7 +129,7 @@ def main():
             com1.rx.clearBuffer()
             time.sleep(0.05)
             logger.info('envio | 3 | {tamanho} | {pacote} | {total} | {crc}'.format(
-                tamanho=len(txBuffer)+len(pacotes[n_pacote])+2,
+                tamanho=len(txBuffer)+len(pacotes[n_pacote])+3,
                 pacote=n_pacote,
                 total=total_pacotes,
                 crc=crc16
