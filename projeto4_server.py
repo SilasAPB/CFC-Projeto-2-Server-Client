@@ -16,7 +16,7 @@ from datetime import datetime
 
 from random import random
 import numpy as np
-serialName ="COM11"
+serialName ="COM7"
 generator=DatagramGenerator()
 
 def geral_log(logger,recebido,tipo):
@@ -35,6 +35,7 @@ def geral_log(logger,recebido,tipo):
 
 
 def main():
+    checksum = Calculator(Crc16.DNP,optimized=True)
     try:
         logger=logging.getLogger("Projeto4_Server")
         logging.basicConfig(filename='project4.log', level=logging.INFO)
@@ -84,8 +85,13 @@ def main():
                             print("A")
                             tamanho_corpo=head['tamanho_pl']
                             recebido_corpo, recebido_size=com1.getData(tamanho_corpo)
+                            
                             print(head["id_pacote"],cont)
                             recebido_eop,recebido_size=com1.getData(3)
+                            # if not checksum.verify(recebido_corpo,head['crc16']):
+                            if not checksum.verify(recebido_corpo,head['crc16'] if head['id_pacote']!= 3 else 1):
+                                print("Checksum errado!")
+                                raise ValueError("Checksum errado")
                         except:
                             aceite=generator.generate_header(tipo=6,id_pacote=cont)
                             com1.sendData(aceite)
@@ -96,7 +102,8 @@ def main():
                             lista_unpack.append(recebido_corpo)
                             aceite=generator.generate_header(tipo=4,id_pacote=head["id_pacote"])
                             com1.sendData(aceite)
-                            cont+=1
+                            # cont+=1
+                            cont+=1 if cont!=3 else 3
                         else:
                             print("----- ERRO ENCONTRADO -----")
                             aceite=generator.generate_header(tipo=6,id_pacote=cont)
