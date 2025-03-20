@@ -121,6 +121,9 @@ def main():
             
         if cont<numPckg:
             aceite=generator.generate_header(tipo=5,id_pacote=cont)
+            tamanho_aceite=len(aceite)
+            aceite_head=generator.decode_header(aceite)
+            geral_log(logger,aceite_head,tamanho_aceite,1)
             com1.sendData(aceite)
             com1.disable()
         else:
