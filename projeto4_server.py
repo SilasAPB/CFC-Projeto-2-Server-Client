@@ -19,18 +19,22 @@ import numpy as np
 serialName ="COM7"
 generator=DatagramGenerator()
 
-def geral_log(logger,recebido,tipo):
+def geral_log(logger,head,tamanho,tipo):
     dic={0:"receb",
          1:"envio"
         }
     #Pega as info de tempo
     agora = datetime.now()
     saida = agora.strftime("%d/%m/%Y %H:%M:%S.") + f"{agora.microsecond // 1000:03d}"
-
-    #Pega as info do que chegou/saiu
-    head=generator.decode_header(recebido)
     #Definindo a mensagem
-    msg=f"{saida} / {dic[tipo]} / {head['type']} / {len(recebido)}"
+    msg=f"{saida} / {dic[tipo]} / {head['type']} / {tamanho}"
+    
+    if head['type']==3:
+        id_atual=head['id_pacote']
+        n_pacotes=head['n_pacotes']
+        crc=head['crc16']
+        msg += f' / {id_atual} / {n_pacotes} / {crc}'
+
     logger.info(msg)
 
 
@@ -56,16 +60,18 @@ def main():
         #RECEBE O HEADER
         time.sleep(.1)
         recebido, recebido_size=com1.getData(12)
+        tamanho=len(recebido)
         print("recebeu {} bytes" .format(len(recebido)))
         head=generator.decode_header(recebido)
         print(head)
-        geral_log(logger,recebido,0)
+        geral_log(logger,head,tamanho,0)
         numPckg=head['n_pacotes']
 
         #MANDA O ACEITE PARA O CLIENT
         aceite=generator.generate_header(tipo=2)
-        print(aceite)
-        geral_log(logger,aceite,1)
+        tamanho_aceite=len(aceite)
+        aceite_head=generator.decode_header(aceite)
+        geral_log(logger,aceite_head,tamanho_aceite,1)
         com1.sendData(aceite)
 
         print(com1.rx.getBufferLen())
@@ -81,8 +87,10 @@ def main():
                     if (com1.rx.getBufferLen()>=12):
                         try:
                             recebido_head, recebido_size=com1.getData(12)
+                            print(recebido_head)
                             head=generator.decode_header(recebido_head)
-                            print("A")
+                            print(head)
+                            print(f"PACOTE DE ID {head['id_pacote']} LIDO COM SUCESSO")
                             tamanho_corpo=head['tamanho_pl']
                             recebido_corpo, recebido_size=com1.getData(tamanho_corpo)
                             
@@ -92,6 +100,7 @@ def main():
                             if not checksum.verify(recebido_corpo,head['crc16'] if head['id_pacote']!= 3 else 1):
                                 print("Checksum errado!")
                                 raise ValueError("Checksum errado")
+                            geral_log(logger,head,(len(head)+tamanho_corpo+3),0)
                         except:
                             aceite=generator.generate_header(tipo=6,id_pacote=cont)
                             com1.sendData(aceite)
@@ -101,12 +110,18 @@ def main():
                             print("----- PACOTE LIDO COM SUCESSO -----")
                             lista_unpack.append(recebido_corpo)
                             aceite=generator.generate_header(tipo=4,id_pacote=head["id_pacote"])
+                            tamanho_aceite=len(aceite)
+                            aceite_head=generator.decode_header(aceite)
+                            geral_log(logger,aceite_head,tamanho_aceite,1)
                             com1.sendData(aceite)
                             # cont+=1
                             cont+=1 if cont!=3 else 3
                         else:
                             print("----- ERRO ENCONTRADO -----")
                             aceite=generator.generate_header(tipo=6,id_pacote=cont)
+                            tamanho_aceite=len(aceite)
+                            aceite_head=generator.decode_header(aceite)
+                            geral_log(logger,aceite_head,tamanho_aceite,1)
                             com1.sendData(aceite)
                     else:
                         time.sleep(0.5)
@@ -125,6 +140,7 @@ def main():
             f= open(imageW, "+wb")
             f.write(imagem)
             f.close()
+            com1.disable()
                 
         
     except Exception as erro:
