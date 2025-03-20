@@ -19,18 +19,15 @@ import numpy as np
 serialName ="COM11"
 generator=DatagramGenerator()
 
-def geral_log(logger,recebido,tipo):
+def geral_log(logger,head,tamanho,tipo):
     dic={0:"receb",
          1:"envio"
         }
     #Pega as info de tempo
     agora = datetime.now()
     saida = agora.strftime("%d/%m/%Y %H:%M:%S.") + f"{agora.microsecond // 1000:03d}"
-
-    #Pega as info do que chegou/saiu
-    head=generator.decode_header(recebido)
     #Definindo a mensagem
-    msg=f"{saida} / {dic[tipo]} / {head['type']} / {len(recebido)}"
+    msg=f"{saida} / {dic[tipo]} / {head['type']} / {tamanho}"
     logger.info(msg)
 
 
@@ -55,16 +52,19 @@ def main():
         #RECEBE O HEADER
         time.sleep(.1)
         recebido, recebido_size=com1.getData(12)
+        tamanho=len(recebido)
         print("recebeu {} bytes" .format(len(recebido)))
         head=generator.decode_header(recebido)
         print(head)
-        geral_log(logger,recebido,0)
+        geral_log(logger,head,tamanho,0)
         numPckg=head['n_pacotes']
 
         #MANDA O ACEITE PARA O CLIENT
         aceite=generator.generate_header(tipo=2)
+        tamanho_aceite=len(aceite)
         print(aceite)
-        geral_log(logger,aceite,1)
+        aceite_head=generator.decode_header(aceite)
+        geral_log(logger,aceite_head,tamanho,1)
         com1.sendData(aceite)
 
         print(com1.rx.getBufferLen())
@@ -80,7 +80,9 @@ def main():
                     if (com1.rx.getBufferLen()>=12):
                         try:
                             recebido_head, recebido_size=com1.getData(12)
+                            print(recebido_head)
                             head=generator.decode_header(recebido_head)
+                            print(head)
                             print("A")
                             tamanho_corpo=head['tamanho_pl']
                             recebido_corpo, recebido_size=com1.getData(tamanho_corpo)
