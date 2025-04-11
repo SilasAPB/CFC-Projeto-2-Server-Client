@@ -12,7 +12,7 @@ static float T_OPP = 162e-6/500;
 static float DEN = 1/BAUDRATE*T_OPP;
 
 void accu_timer(){
-  for(int i = 0 ; i < 1000 ; i++){
+  for(int i = 0 ; i < DEN ; i++){
     asm("NOP");  }
   }
 
@@ -26,16 +26,16 @@ int calc_even_parity(byte data) {
 
 
 void loop() {
+  accu_timer();
   char caractere = 'Y'; // ASCII de 'A' = 65 (01000001)
   int p = calc_even_parity(caractere);
-  Serial.println(p);
-  delay(1000);
   digitalWrite(3,LOW);
   accu_timer();
   for (int i = 7; i >= 0; i--) {
       bool bitParaEnviar = (caractere >> i) & 1;
+
+      Serial.println(bitParaEnviar);
       digitalWrite(3, bitParaEnviar);
-      // Serial.println(bitParaEnviar);
       // if (bitParaEnviar == 1){
       //   digitalWrite(3, HIGH);
       // }
@@ -47,8 +47,7 @@ void loop() {
   // Serial.println("Bit de paridade:");
 
   digitalWrite(3,p);
-  accu_timer();
   digitalWrite(3,HIGH);
-  // Serial.println("----------------------------------------------");
+  Serial.println("----------------------------------------------");
   // put your main code here, to run repeatedly:
 }
