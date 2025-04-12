@@ -1,18 +1,18 @@
+static int BAUDRATE = 9600;
+static float T_OPP = (0.000162) / 500; // Frequência de clock Arduino ajustada
+static float DEN = (1.0 / BAUDRATE) / T_OPP; 
+static float UNHDEN = ((1.0 / BAUDRATE) * 1.5) / T_OPP;
+
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
-  Serial.println("Monitoramento Iniciado!");
-  pinMode(3,OUTPUT);
-  pinMode(4,INPUT);
-  digitalWrite(3,HIGH);
+  pinMode(4,OUTPUT);
+  digitalWrite(4,HIGH);
 }
 
-static int BAUDRATE = 9600;
-static float T_OPP = 162e-6/500;
-static float DEN = 1/BAUDRATE*T_OPP;
 
 void accu_timer(){
-  for(int i = 0 ; i < DEN ; i++){
+  for(int i = 0 ; i < DEN; i++){
     asm("NOP");  }
   }
 
@@ -24,30 +24,25 @@ int calc_even_parity(byte data) {
     return ones % 2;
 }
 
+char caractere = 'B';  // ASCII de 'Y' = 89 (01011001)
+int p = calc_even_parity(caractere);
 
 void loop() {
-  accu_timer();
-  char caractere = 'Y'; // ASCII de 'A' = 65 (01000001)
-  int p = calc_even_parity(caractere);
-  digitalWrite(3,LOW);
-  accu_timer();
-  for (int i = 7; i >= 0; i--) {
-      bool bitParaEnviar = (caractere >> i) & 1;
+  delay(1000);
 
+  digitalWrite(4,LOW);
+  accu_timer();
+  for (int i = 0; i < 8; i++) {
+      bool bitParaEnviar = (caractere >> i) & 1;
+      digitalWrite(4, bitParaEnviar);
       Serial.println(bitParaEnviar);
-      digitalWrite(3, bitParaEnviar);
-      // if (bitParaEnviar == 1){
-      //   digitalWrite(3, HIGH);
-      // }
-      // else{
-      //   digitalWrite(3, LOW);
-      // }
       accu_timer(); // Pequeno atraso para garantir transmissão
   }
-  // Serial.println("Bit de paridade:");
-
-  digitalWrite(3,p);
-  digitalWrite(3,HIGH);
-  Serial.println("----------------------------------------------");
+ 
+  digitalWrite(4,p);
+  accu_timer();
+  digitalWrite(4,HIGH);
+  accu_timer();
+ Serial.println("------------------------------");
   // put your main code here, to run repeatedly:
 }
